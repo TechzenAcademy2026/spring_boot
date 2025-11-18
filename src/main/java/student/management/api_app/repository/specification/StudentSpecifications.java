@@ -11,10 +11,6 @@ import java.time.LocalDate;
 
 public class StudentSpecifications {
 
-    private static String likePattern(String input) {
-        return "%" + input.toLowerCase().trim() + "%";
-    }
-
     public static Specification<Student> personNameContains(String keyword) {
         return (root, query, cb) -> {
             Join<Student, Person> personJoin = root.join("person", JoinType.INNER);
@@ -53,7 +49,7 @@ public class StudentSpecifications {
     public static Specification<Student> studentCodeContains(String code) {
         return (root, query, cb) -> {
             if (!StringUtils.hasText(code)) return null;
-            return cb.like(cb.lower(root.get("studentCode")), likePattern(code));
+            return cb.like(cb.lower(root.get("studentCode")), SpecUtils.likePattern(code));
         };
     }
 

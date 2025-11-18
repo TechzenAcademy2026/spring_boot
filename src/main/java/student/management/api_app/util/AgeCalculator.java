@@ -10,4 +10,8 @@ public class AgeCalculator {
         if (dob == null) return false;
         return Period.between(dob, LocalDate.now()).getYears() >= 18;
     }
+
+    public static LocalDate eighteenYearsAgo() {
+        return LocalDate.now().minusYears(18);
+    }
 }

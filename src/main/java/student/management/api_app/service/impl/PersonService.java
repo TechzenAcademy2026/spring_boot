@@ -15,10 +15,10 @@ import student.management.api_app.dto.page.PageResponse;
 import student.management.api_app.dto.person.*;
 import student.management.api_app.mapper.PersonMapper;
 import student.management.api_app.model.Person;
-import student.management.api_app.model.Student;
 import student.management.api_app.repository.PersonRepository;
 import student.management.api_app.repository.specification.PersonSpecifications;
 import student.management.api_app.service.IPersonService;
+import student.management.api_app.util.IdUtils;
 import student.management.api_app.util.NormalizerUtil;
 
 import java.util.*;
@@ -67,13 +67,8 @@ public class PersonService implements IPersonService {
     @Transactional(readOnly = true)
     @Override
     public PageResponse<PersonListItemResponse> listByIds(Collection<UUID> ids, Pageable pageable) {
-        if (ids == null || ids.isEmpty()) {
-            return new PageResponse<>(Page.empty(pageable));
-        }
-
-        Set<UUID> distinctIds = ids.stream()
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+        Set<UUID> distinctIds = IdUtils.distinctNonNull(ids);
+        if (distinctIds.isEmpty()) return new PageResponse<>(Page.empty(pageable));
 
         Page<Person> pageData = repo.findByIdIn(distinctIds, pageable);
         Page<PersonListItemResponse> mappedPageData =

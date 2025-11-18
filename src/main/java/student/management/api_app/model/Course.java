@@ -15,28 +15,26 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "students", schema = "app")
-public class Student {
+@Table(name = "courses", schema = "app")
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class Course {
+
     @Id
-    @Column(name = "person_id")
+    @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
 
-    @MapsId
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "person_id")
-    Person person;
+    @Column(name = "course_name", nullable = false, length = FieldLength.NAME_MAX_LENGTH)
+    String name;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "major_id") // Cột FK trong bảng students
-    Major major;
+    @Column(name = "course_code", nullable = false, unique = true, length = FieldLength.CODE_MAX_LENGTH)
+    String code;
 
-    @Column(name = "student_code", unique = true, nullable = false, length = FieldLength.CODE_MAX_LENGTH)
-    String studentCode;
+    @Column(columnDefinition = "TEXT")
+    String description;
 
-    @Column(name = "enrollment_year")
-    Integer enrollmentYear;
+    @Column(nullable = false)
+    Integer credit;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     Instant createdAt;
@@ -44,7 +42,7 @@ public class Student {
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
     Instant updatedAt;
 
-    @OneToMany(mappedBy = "student", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "course", fetch = FetchType.LAZY)
     @Builder.Default
     List<Enrollment> enrollments = new ArrayList<>();
 }

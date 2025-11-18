@@ -20,7 +20,6 @@ import student.management.api_app.dto.student.*;
 import student.management.api_app.service.impl.StudentService;
 
 import java.net.URI;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -62,6 +61,24 @@ public class StudentController {
     }
 
     @Operation(
+            summary = "List students by major id with pagination",
+            description = "Lấy danh sách student theo id của chuyên ngành có phân trang",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Success"),
+                    @ApiResponse(responseCode = "404", description = "Not found",
+                            content = @Content(schema = @Schema(implementation = AppResponse.AppError.class)))
+            }
+    )
+    @GetMapping("/by-major/{major_id}")
+    public ResponseEntity<AppResponse<PageResponse<StudentListItemResponse>>> listStudentsByMajor(
+            @PathVariable UUID major_id,
+            @ParameterObject
+            @PageableDefault(size = 5, sort = "createdAt", direction = Sort.Direction.DESC)
+            Pageable pageable) {
+        return ResponseEntity.ok(AppResponse.success(service.listByMajorId(major_id, pageable)));
+    }
+
+    @Operation(
             summary = "Search students by attributes",
             description = """
                     Tìm kiếm học viên với nhiều điều kiện tùy chọn:
@@ -91,11 +108,11 @@ public class StudentController {
             responses = @ApiResponse(responseCode = "200", description = "Success")
     )
     @GetMapping("stats/count-by-year")
-    public ResponseEntity<AppResponse<List<EnrollmentStatDTO>>> countByEnrollmentYear() {
-        return ResponseEntity.ok(AppResponse.<List<EnrollmentStatDTO>>builder()
-                .success(true)
-                .data(service.countStudentsGroupedByYear())
-                .build());
+    public ResponseEntity<AppResponse<PageResponse<EnrollmentStatDTO>>> countByEnrollmentYear(
+            @ParameterObject
+            @PageableDefault(size = 5, sort = "enrollmentYear")
+            Pageable pageable) {
+        return ResponseEntity.ok(AppResponse.success(service.countStudentsGroupedByYear(pageable)));
     }
 
     @Operation(

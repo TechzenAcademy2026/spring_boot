@@ -8,6 +8,7 @@ public record StudentListItemResponse(
         Integer enrollmentYear,
         String fullName,
         String contactEmail,
-        Boolean isAdult
+        Boolean isAdult,
+        String majorCode
 ) {
 }

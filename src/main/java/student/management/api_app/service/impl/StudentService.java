@@ -5,9 +5,7 @@ import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -20,11 +18,12 @@ import student.management.api_app.dto.student.*;
 import student.management.api_app.mapper.StudentMapper;
 import student.management.api_app.model.Person;
 import student.management.api_app.model.Student;
+import student.management.api_app.repository.MajorRepository;
 import student.management.api_app.repository.PersonRepository;
 import student.management.api_app.repository.StudentRepository;
 import student.management.api_app.service.IStudentService;
+import student.management.api_app.util.AgeCalculator;
 
-import java.util.List;
 import java.util.UUID;
 
 import static student.management.api_app.repository.specification.StudentSpecifications.*;
@@ -35,6 +34,7 @@ import static student.management.api_app.util.NormalizerUtil.*;
 public class StudentService implements IStudentService {
     private final StudentRepository studentRepo;
     private final PersonRepository personRepo;
+    private final MajorRepository majorRepo;
     private final StudentMapper studentMapper;
 
     @PersistenceContext
@@ -43,12 +43,9 @@ public class StudentService implements IStudentService {
     @Transactional(readOnly = true)
     @Override
     public PageResponse<StudentListItemResponse> getAll(Pageable pageable) {
-        // Dùng findAll(Pageable pageable) của PagingAndSortingRepository
-        Page<Student> pageData = studentRepo.findAll(pageable);
-
-        Page<StudentListItemResponse> mappedPageData =
-                pageData.map(studentMapper::toListItemResponse);
-        return new PageResponse<>(mappedPageData);
+        Page<StudentListItemResponse> pageData =
+                studentRepo.findAllListItem(AgeCalculator.eighteenYearsAgo(), pageable);
+        return new PageResponse<>(pageData);
     }
 
     @Transactional(readOnly = true)
@@ -97,8 +94,26 @@ public class StudentService implements IStudentService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<EnrollmentStatDTO> countStudentsGroupedByYear() {
-        return studentRepo.countStudentsGroupedByYear();
+    public PageResponse<StudentListItemResponse> listByMajorId(
+            UUID majorId, Pageable pageable) {
+
+        if (!majorRepo.existsById(majorId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Major not found with id: " + majorId);
+        }
+
+        Page<StudentListItemResponse> pageData =
+                studentRepo.findByMajor_Id(majorId, pageable)
+                        .map(studentMapper::toListItemResponse);
+
+        return new PageResponse<>(pageData);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public PageResponse<EnrollmentStatDTO> countStudentsGroupedByYear(Pageable pageable) {
+        Page<EnrollmentStatDTO> pageData = studentRepo.countStudentsGroupedByYear(pageable);
+        return new PageResponse<>(pageData);
     }
 
     @Transactional(readOnly = true)
@@ -280,17 +295,17 @@ public class StudentService implements IStudentService {
                 HttpStatus.BAD_REQUEST, "Student code is required");
     }
 
-    private void checkExistedIdInStudent(UUID id) {
+    private void checkExistedIdInStudent(UUID id) throws ResponseStatusException {
         if (studentRepo.existsById(id)) throw new ResponseStatusException(
                 HttpStatus.CONFLICT, "This person is already a student: " + id);
     }
 
-    private void checkExistedPhone(String phone) {
+    private void checkExistedPhone(String phone) throws ResponseStatusException {
         if (phone != null && personRepo.existsByPhone(phone)) throw new ResponseStatusException(
                 HttpStatus.CONFLICT, "Phone " + phone + " is existed");
     }
 
-    private void checkExistedStudentCode(String studentCode) {
+    private void checkExistedStudentCode(String studentCode) throws ResponseStatusException {
         if (studentRepo.existsByStudentCode(studentCode)) throw new ResponseStatusException(
                 HttpStatus.CONFLICT, "Student code " + studentCode + " is existed");
     }
