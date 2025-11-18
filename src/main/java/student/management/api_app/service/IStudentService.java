@@ -10,16 +10,17 @@ import java.util.UUID;
 public interface IStudentService {
     PageResponse<StudentListItemResponse> getAll(Pageable pageable);
     PageResponse<StudentListItemResponse> search(StudentSearchRequest req, Pageable pageable);
-
     PageResponse<StudentListItemResponse> listByEnrollmentYear(Integer year, Pageable pageable);
-    List<EnrollmentStatDTO> countStudentsGroupedByYear();
+    PageResponse<StudentListItemResponse> listByMajorId(UUID majorId, Pageable pageable);
+
+    PageResponse<EnrollmentStatDTO> countStudentsGroupedByYear(Pageable pageable);
 
     StudentDetailResponse getById(UUID id);
     StudentDetailResponse getByStudentCode(String studentCode);
     StudentDetailResponse getByPhone(String phone);
-
     StudentDetailResponse create(StudentCreateRequest req);
     StudentDetailResponse createFromExistingPerson(StudentCreateFromPersonRequest req);
     StudentDetailResponse patch(UUID id, StudentPatchRequest req);
+
     void deleteById(UUID id);
 }
