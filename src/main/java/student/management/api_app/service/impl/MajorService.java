@@ -1,7 +1,6 @@
 package student.management.api_app.service.impl;
 
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -13,9 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import student.management.api_app.dto.major.*;
 import student.management.api_app.dto.page.PageResponse;
-import student.management.api_app.dto.student.StudentListItemResponse;
 import student.management.api_app.mapper.MajorMapper;
-import student.management.api_app.mapper.StudentMapper;
 import student.management.api_app.model.Major;
 import student.management.api_app.repository.MajorRepository;
 import student.management.api_app.repository.specification.MajorSpecifications;
@@ -34,10 +31,7 @@ public class MajorService implements IMajorService {
 
     private final MajorRepository repo;
     private final MajorMapper majorMapper;
-    private final StudentMapper studentMapper;
-
-    @PersistenceContext
-    private EntityManager entityManager;
+    private final EntityManager entityManager;
 
     @Transactional(readOnly = true)
     @Override

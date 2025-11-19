@@ -9,7 +9,7 @@ import student.management.api_app.model.Major;
 public class MajorMapper {
 
     public MajorDetailResponse toDetailResponse(Major major) {
-        return new MajorDetailResponse(
+        return major == null ? null : new MajorDetailResponse(
                 major.getId(),
                 major.getCode(),
                 major.getName(),
