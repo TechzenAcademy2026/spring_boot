@@ -12,6 +12,12 @@
 
 ---
 
+# Buổi 12:
+
+### 1. Thêm phần lý thuyết: Upload File: MultipartFile, S3 Local, validation & metadata
+
+---
+
 # Buổi 13: Spring Security Setup
 
 ### 1. Thêm phần lý thuyết: `JPA Auditing` để quản lý người tạo/người sửa
