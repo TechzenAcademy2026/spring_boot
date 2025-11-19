@@ -36,9 +36,7 @@ public class StudentService implements IStudentService {
     private final PersonRepository personRepo;
     private final MajorRepository majorRepo;
     private final StudentMapper studentMapper;
-
-    @PersistenceContext
-    private EntityManager entityManager;
+    private final EntityManager entityManager;
 
     @Transactional(readOnly = true)
     @Override

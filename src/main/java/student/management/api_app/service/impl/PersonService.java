@@ -29,9 +29,7 @@ import java.util.stream.Collectors;
 public class PersonService implements IPersonService {
     private final PersonRepository repo;
     private final PersonMapper mapper;
-
-    @PersistenceContext
-    private EntityManager entityManager;
+    private final EntityManager entityManager;
 
     @Transactional(readOnly = true)
     @Override

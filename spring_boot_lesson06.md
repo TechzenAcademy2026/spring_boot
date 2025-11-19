@@ -980,9 +980,7 @@ public interface IPersonService {
 public class PersonService implements IPersonService {
     private final PersonRepository repo;
     private final PersonMapper mapper;
-
-    @PersistenceContext
-    private EntityManager entityManager;
+    private final EntityManager entityManager;
 
     @Transactional(readOnly = true)
     @Override
@@ -1177,7 +1175,6 @@ public class PersonService implements IPersonService {
 
 > * `@Transactional`: annotation giúp Spring quản lý Transaction tự động (không cần BEGIN, COMMIT, ROLLBACK thủ công)
 >   * `readOnly = true`: báo Hibernate biết transaction này chỉ phục vụ đọc dữ liệu, không có thay đổi nào xuống DB → tối ưu hiệu năng
-> * `@PersistenceContext`: cơ chế đặc biệt để inject EntityManager gắn với transaction hiện tại
 > * `EntityManager`: interface của JPA dùng để quản lý transaction, Entity và trạng thái
 >   * `refresh()` (không có ở JpaRepository): lấy lại dữ liệu mới nhất do DB gán tự động (`created_at`/`updated_at`) 
 > * `listByIds(Collection<UUID> ids)`: dùng Collection<UUID> để nhận được cả Set, List, bất kỳ Collection nào chứa ids
@@ -1212,9 +1209,7 @@ public interface IPersonService {
 // Hãy khai báo Annotation cần thiết
 public class PersonService implements IPersonService {
     private final PersonRepository repo;
-
-    @PersistenceContext
-    private EntityManager entityManager;
+    private final EntityManager entityManager;
 
     // Hãy khai báo Annotation cần thiết
     @Override
@@ -1323,9 +1318,7 @@ public class StudentService implements IStudentService {
   private final StudentRepository studentRepo;
   private final PersonRepository personRepo;
   private final StudentMapper studentMapper;
-
-  @PersistenceContext
-  private EntityManager entityManager;
+  private final EntityManager entityManager;
 
   @Transactional(readOnly = true)
   @Override
@@ -1565,9 +1558,7 @@ public class StudentService implements IStudentService {
     private final StudentRepository studentRepo;
     private final PersonRepository personRepo;
     private final StudentMapper studentMapper;
-
-    @PersistenceContext
-    private EntityManager entityManager;
+    private final EntityManager entityManager;
 
     // Hãy khai báo Annotation cần thiết
     @Override
