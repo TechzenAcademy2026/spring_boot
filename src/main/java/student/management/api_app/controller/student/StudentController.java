@@ -82,12 +82,10 @@ public class StudentController {
             summary = "Search students by attributes",
             description = """
                     Tìm kiếm học viên với nhiều điều kiện tùy chọn:
-                    - name: chứa trong Person.fullName (ignore case)
-                    - phone: đúng với Person.phone (sau normalize)
-                    - email: chứa trong Person.contactEmail
-                    - studentCode: chứa trong studentCode
-                    - enrollmentYearFrom / enrollmentYearTo: khoảng năm nhập học
-                    Hỗ trợ phân trang & sort theo mọi field hợp lệ (kể cả person.fullName)
+                    - person.name, person.phone, person.email, person.address, person.dobFrom, person.dobTo
+                    - studentCode, enrollmentYearFrom, enrollmentYearTo
+                    - major.code, major.name
+                    Hỗ trợ phân trang & sort theo mọi field hợp lệ (kể cả person.fullName, ...)
                     """,
             responses = @ApiResponse(responseCode = "200", description = "Success")
     )

@@ -4,6 +4,7 @@ import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.StringUtils;
+import student.management.api_app.model.Major;
 import student.management.api_app.model.Person;
 import student.management.api_app.model.Student;
 
@@ -43,6 +44,23 @@ public class StudentSpecifications {
         return (root, query, cb) -> {
             Join<Student, Person> person = root.join("person", JoinType.INNER);
             return PersonSpecifications.dobLte(person, cb, to);
+        };
+    }
+
+    public static Specification<Student> majorCodeContains(String code) {
+        return (root, query, cb) -> {
+            if (!StringUtils.hasText(code)) return null;
+            // LEFT JOIN luôn giữ lại Student, kể cả khi major = null
+            Join<Student, Major> major = root.join("major", JoinType.LEFT);
+            return cb.like(cb.lower(major.get("code")), SpecUtils.likePattern(code));
+        };
+    }
+
+    public static Specification<Student> majorNameContains(String name) {
+        return (root, query, cb) -> {
+            if (!StringUtils.hasText(name)) return null;
+            Join<Student, Major> major = root.join("major", JoinType.LEFT);
+            return cb.like(cb.lower(major.get("name")), SpecUtils.likePattern(name));
         };
     }
 
