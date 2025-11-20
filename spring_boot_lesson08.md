@@ -899,11 +899,38 @@ fetch
 
 #### Bài tập 1: Hãy kiểm tra tất cả API còn lại có dính N+1 problem & refactor để xử lý N+1
 
-### 5.2 Cập nhật DTO Response của Student
+### 5.2 Cập nhật DTO Response của Student để trả thêm thông tin của Major
 
 Trong các DTO Response của Student cần thêm các field liên quan `Student.major`:
 
 #### 5.2.1 StudentDetailResponse
+
+* Tạo `MajorDetailResponse`:
+
+```java
+// student/management/api_app/dto/major/MajorDetailResponse.java
+public record MajorDetailResponse(
+        UUID id,
+        String code,
+        String name,
+        String description,
+        Instant createdAt,
+        Instant updatedAt
+) {
+}
+```
+
+* Tạo `MajorListItemResponse`:
+
+```java
+// student/management/api_app/dto/major/MajorListItemResponse.java
+public record MajorListItemResponse(
+        UUID id,
+        String code,
+        String name
+) {
+}
+```
 
 * Thêm object `majorDetail` khi trả về chi tiết `student`:
 
@@ -921,10 +948,42 @@ public record StudentDetailResponse(
 }
 ```
 
+* Tạo `MajorMapper`:
+
+```java
+// student/management/api_app/mapper/MajorMapper.java
+
+@Component
+public class MajorMapper {
+
+  public MajorDetailResponse toDetailResponse(Major major) {
+    return major == null ? null : new MajorDetailResponse(
+            major.getId(),
+            major.getCode(),
+            major.getName(),
+            major.getDescription(),
+            major.getCreatedAt(),
+            major.getUpdatedAt()
+    );
+  }
+
+  public MajorListItemResponse toListItemResponse(Major major) {
+    return new MajorListItemResponse(
+            major.getId(),
+            major.getCode(),
+            major.getName()
+    );
+  }
+}
+```
+
 * Cập nhật method `StudentMapper.toDetailResponse()` để trả thêm object `student.getMajor()`:
 
 ```java
 // student/management/api_app/mapper/StudentMapper.java
+
+private final MajorMapper majorMapper;
+
 public StudentDetailResponse toDetailResponse(Student s) {
   return new StudentDetailResponse(
           personMapper.toDetailResponse(s.getPerson()),
@@ -1015,16 +1074,75 @@ Page<Student> findAll(Specification spec, @NonNull Pageable pageable);
 Page<Student> findByEnrollmentYear(Integer enrollmentYear, Pageable pageable);
 ```
 
-### 5.3 Thêm API `GET /by-major/{majorId}`
+### 5.3 Thêm filter majorCode cho API GET students/search
 
-#### 5.3.1 StudentRepository
+#### 5.3.1 Thêm nested MajorSearchRequest trong StudentSearchRequest
+
+```java
+// student/management/api_app/dto/student/StudentSearchRequest.java
+public record StudentSearchRequest(
+
+        PersonSearchRequest person,
+        MajorSearchRequest major,
+
+        String studentCode,
+        Integer enrollmentYearFrom,
+        Integer enrollmentYearTo
+) {}
+``` 
+
+#### 5.3.2 Thêm các Specification con trong StudentSpecifications
+
+```java
+// student/management/api_app/repository/specification/StudentSpecifications.java
+public static Specification<Student> majorCodeContains(String code) {
+  return (root, query, cb) -> {
+    if (!StringUtils.hasText(code)) return null;
+    // LEFT JOIN luôn giữ lại Student, kể cả khi major = null
+    Join<Student, Major> major = root.join("major", JoinType.LEFT);
+    return cb.like(cb.lower(major.get("code")), SpecUtils.likePattern(code));
+  };
+}
+
+public static Specification<Student> majorNameContains(String name) {
+  return (root, query, cb) -> {
+    if (!StringUtils.hasText(name)) return null;
+    Join<Student, Major> major = root.join("major", JoinType.LEFT);
+    return cb.like(cb.lower(root.get("name")), SpecUtils.likePattern(name));
+  };
+}
+```
+
+#### 5.3.3 Gắn filter major vào StudentService.search(...)
+
+```java
+// student/management/api_app/service/impl/StudentService.java
+String majorCode = normalizeCode(mReq != null ? mReq.code() : null);
+String majorName = trimToNull(mReq != null ? mReq.name() : null);
+
+Specification<Student> spec = Specification.<Student>unrestricted()
+        .and(personNameContains(name))
+        .and(personPhoneEquals(phone))
+        .and(personEmailContains(email))
+        .and(personDobGte(pReq != null ? pReq.dobFrom() : null))
+        .and(personDobLte(pReq != null ? pReq.dobTo() : null))
+        .and(studentCodeContains(studentCode))
+        .and(enrollmentYearGte(req.enrollmentYearFrom()))
+        .and(enrollmentYearLte(req.enrollmentYearTo()))
+        .and(majorCodeContains(majorCode))
+        .and(majorNameContains(majorName));
+```
+
+### 5.4 Thêm API `GET /by-major/{majorId}`
+
+#### 5.4.1 StudentRepository
 
 ```java
 // findByMajor_Id = truy vấn nested theo student.major.id
-    Page<Student> findByMajor_Id(UUID id, Pageable pageable);
+Page<Student> findByMajor_Id(UUID id, Pageable pageable);
 ```
 
-#### 5.3.2 StudentService
+#### 5.4.2 StudentService
 
 ```java
 @Transactional(readOnly = true)
@@ -1045,7 +1163,7 @@ public PageResponse<StudentListItemResponse> listByMajorId(
 }
 ```
 
-#### 5.3.3 StudentController
+#### 5.4.3 StudentController
 
 ```java
 @Operation(

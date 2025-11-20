@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import student.management.api_app.dto.major.MajorSearchRequest;
 import student.management.api_app.dto.page.PageResponse;
 import student.management.api_app.dto.person.PersonCreateRequest;
 import student.management.api_app.dto.person.PersonSearchRequest;
@@ -54,11 +55,14 @@ public class StudentService implements IStudentService {
             StudentSearchRequest req, Pageable pageable) {
 
         PersonSearchRequest pReq = req.person(); // Lưu ý có thể là null
+        MajorSearchRequest mReq = req.major();
 
         String name = trimToNull(pReq != null ? pReq.name() : null);
         String phone = normalizePhone(pReq != null ? pReq.phone() : null);
         String email = normalizeEmail(pReq != null ? pReq.email() : null);
-        String code = normalizeCode(req.studentCode());
+        String majorCode = normalizeCode(mReq != null ? mReq.code() : null);
+        String majorName = trimToNull(mReq != null ? mReq.name() : null);
+        String studentCode = normalizeCode(req.studentCode());
 
         Specification<Student> spec = Specification.<Student>unrestricted()
                 .and(personNameContains(name))
@@ -66,9 +70,11 @@ public class StudentService implements IStudentService {
                 .and(personEmailContains(email))
                 .and(personDobGte(pReq != null ? pReq.dobFrom() : null))
                 .and(personDobLte(pReq != null ? pReq.dobTo() : null))
-                .and(studentCodeContains(code))
+                .and(studentCodeContains(studentCode))
                 .and(enrollmentYearGte(req.enrollmentYearFrom()))
-                .and(enrollmentYearLte(req.enrollmentYearTo()));
+                .and(enrollmentYearLte(req.enrollmentYearTo()))
+                .and(majorCodeContains(majorCode))
+                .and(majorNameContains(majorName));
 
         Page<Student> pageData = studentRepo.findAll(spec, pageable);
 
