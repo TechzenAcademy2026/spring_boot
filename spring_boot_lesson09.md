@@ -59,20 +59,12 @@ public class StudentSpecifications {
 
 ### 1.2 Tìm Student bằng Criteria API thuần (không dùng Specification)
 
-Tạo repository custom StudentCriteriaRepository không `extends JpaRepository<Student, UUID>, JpaSpecificationExecutor<Student>`
-
-
-
-
-
-
-
+Tạo repository custom `StudentCriteriaRepository` không `extends JpaRepository<Student, UUID>, JpaSpecificationExecutor<Student>`
 
 ```java
 @Repository
 @RequiredArgsConstructor
 public class StudentCriteriaRepository {
-
     private final EntityManager em;
 
     public List<Student> search(
@@ -85,12 +77,12 @@ public class StudentCriteriaRepository {
         CriteriaQuery<Student> cq = cb.createQuery(Student.class);
 
         Root<Student> root = cq.from(Student.class);
-        // JOIN person & major giống mapping ở buổi 8
         Join<Student, Person> personJoin = root.join("person", JoinType.INNER);
         Join<Student, Major> majorJoin = root.join("major", JoinType.LEFT);
 
         List<Predicate> predicates = new ArrayList<>();
 
+        // Thêm các điều kiện lọc, tương tự như trong StudentSpecifications
         if (nameKeyword != null && !nameKeyword.isBlank()) {
             predicates.add(
                     cb.like(
@@ -126,46 +118,206 @@ public class StudentCriteriaRepository {
 }
 ```
 
-### 📌 Ưu & nhược điểm
-
-| Ưu điểm                                                 | Nhược điểm                     |
-| ------------------------------------------------------- | ------------------------------ |
-| An toàn khi compile-time (tránh lỗi sai chính tả field) | Cú pháp dài, khó đọc           |
-| Tạo truy vấn động mạnh mẽ                               | Khó bảo trì nếu logic phức tạp |
-| Áp dụng khi search/filter nhiều trường                  | Không trực quan cho dev mới    |
-
-➡ **Criteria API phù hợp khi cần filter đa điều kiện** (tìm kiếm nâng cao).
+#### Nhận xét Criteria API thuần:
+* Ưu điểm: type-safe, dễ gắn điều kiện động (nếu null thì không add)
+* Nhược điểm: code dài, hơi rối → khó maintain nếu query phức tạp
+* Hiểu Criteria API → rất dễ hiểu `Specification`
+* Trong thực tế Spring Boot: thường không viết Criteria API thuần, mà dùng `Specification` cho gọn
 
 ---
 
-## 2) QueryDSL – truy vấn mạnh mẽ và hiện đại
+## 3) MapStruct – Tự động map Entity ↔ DTO
 
-### 📌 Tổng quan
+### 3.1 Vấn đề khi map thủ công
 
-QueryDSL là thư viện query type-safe, dễ đọc hơn Criteria API.
-→ Cung cấp class Q-Entity để truy vấn an toàn & ngắn gọn.
+Hiện tại khi trả JSON cho client, ta phải:
+* Tạo `StudentListItemResponse`, `StudentDetailResponse`
+* Tự viết `toResponse(Student s)` trong mapper để map từng field
 
-### 📌 Ví dụ
+Nhược điểm:
+* Dễ sai sót, **quên field khi entity thay đổi**
+* Khó test và bảo trì
 
-```java
-QStudent s = QStudent.student;
+### 3.2 Giải pháp MapStruct
 
-List<Student> students = queryFactory
-    .selectFrom(s)
-    .where(s.age.gt(18).and(s.fullName.containsIgnoreCase(keyword)))
-    .orderBy(s.createdAt.desc())
-    .fetch();
+> * MapStruct là một `annotation processor` sinh ra code mapping compile-time, rất nhanh và type-safe
+> * Ta chỉ cần khai báo interface + annotation `@Mapper`, MapStruct tự sinh implementation
+
+### 3.3 Cấu hình MapStruct
+
+#### 3.2.1 Maven
+
+```xml
+<properties>
+    <mapstruct.version>1.6.3</mapstruct.version>
+</properties>
+
+<dependencies>
+<!-- MapStruct runtime -->
+<dependency>
+    <groupId>org.mapstruct</groupId>
+    <artifactId>mapstruct</artifactId>
+    <version>${mapstruct.version}</version>
+</dependency>
+</dependencies>
+
+<build>
+<plugins>
+    <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+            <source>21</source>
+            <target>21</target>
+            <annotationProcessorPaths>
+                <path>
+                    <groupId>org.mapstruct</groupId>
+                    <artifactId>mapstruct-processor</artifactId>
+                    <version>${mapstruct.version}</version>
+                </path>
+                <!-- Cấu hình để tương thích với Lombok -->
+                <path>
+                    <groupId>org.projectlombok</groupId>
+                    <artifactId>lombok</artifactId>
+                    <version>1.18.32</version>
+                </path>
+            </annotationProcessorPaths>
+        </configuration>
+    </plugin>
+</plugins>
+</build>
 ```
 
-### 📌 Ưu điểm vượt trội
+#### 3.2.2 Gradle
 
-| Criteria API  | QueryDSL                                    |
-| ------------- | ------------------------------------------- |
-| Dài, phức tạp | Ngắn gọn, dễ đọc                            |
-| Khó debug     | Log rõ ràng                                 |
-| Học lâu       | Dễ tiếp cận và phổ biến trong dự án thực tế |
+```groovy
+dependencies {
+    implementation 'org.mapstruct:mapstruct:1.6.3'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 
-➡ **Nhiều công ty sử dụng QueryDSL thay thế Criteria API cho search/pagination phức tạp.**
+    // Cấu hình để tương thích với Lombok    
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+}
+```
+
+### 3.4 Ví dụ DTO
+
+```java
+public record StudentListItemResponse(
+        UUID id,
+        String studentCode,
+        String fullName,
+        Integer enrollmentYear,
+        String majorName
+) {}
+
+public record StudentDetailResponse(
+        UUID id,
+        String studentCode,
+        Integer enrollmentYear,
+        String fullName,
+        String phone,
+        String email,
+        String address,
+        String majorCode,
+        String majorName
+) {}
+```
+
+### 3.5 Tạo StudentMapper với MapStruct
+
+```java
+@Mapper(componentModel = "spring")
+public interface StudentMapper {
+
+    @Mapping(target = "fullName", source = "person.fullName")
+    @Mapping(target = "majorName", source = "major.name")
+    StudentListItemResponse toListItem(Student entity);
+
+    @Mapping(target = "fullName", source = "person.fullName")
+    @Mapping(target = "phone", source = "person.phone")
+    @Mapping(target = "email", source = "person.contactEmail")
+    @Mapping(target = "address", source = "person.address")
+    @Mapping(target = "majorCode", source = "major.code")
+    @Mapping(target = "majorName", source = "major.name")
+    StudentDetailResponse toDetail(Student entity);
+
+    List<StudentListItemResponse> toListItems(List<Student> entities);
+}
+```
+
+**Giải thích**:
+* `componentModel = "spring"` → MapStruct tạo bean để ta @Autowired vào service
+* `source = "person.fullName"` → hỗ trợ nested mapping
+* MapStruct sẽ generate class `StudentMapperImpl` ở thư mục `build/generated/sources/...`
+
+## 4) Tùy biến nâng cao với MapStruct
+
+### 4.1 @Named kết hợp @Mapping(qualifiedByName = "...")
+
+`qualifiedByName` là cách để MapStruct biết phải dùng method được đánh dấu bằng `@Named` để gán giá trị cho một field, thay vì lấy trực tiếp source = "xxx"
+
+Ví dụ: bổ sung field displayName = studentCode + " - " + fullNam
+
+```java
+public record StudentListItemResponse(
+        UUID id,
+        String studentCode,
+        String fullName,
+        Integer enrollmentYear,
+        String majorName,
+        String displayName // thêm field
+) { }
+```
+
+Trong mapper:
+
+```java
+@Mapper(componentModel = "spring")
+public interface StudentMapper {
+
+    @Mapping(target = "fullName", source = "person.fullName")
+    @Mapping(target = "majorName", source = "major.name")
+    @Mapping(target = "displayName", source = "studentCode", qualifiedByName = "displayName")
+    StudentListItemResponse toListItem(Student entity);
+
+    @Named("displayName")
+    default String buildDisplayName(String studentCode) {
+        return studentCode + " (VIP)";
+    }
+}
+```
+
+**Giải thích**:
+* `source = "studentCode"`: truyền `studentCode` vào method helper được đánh dấu bởi `@Named("displayName")`
+  * `qualifiedByName = "displayName"`: Dùng method có `@Named("displayName")` để map
+  * MapStruct sẽ gọi đúng method helper: `buildDisplayName(Student entity)` để trả về `String` → gán vào `displayName`
+
+
+
+
+
+
+
+
+### 4.2 Mapping Page / Pagination
+
+Trong buổi 7 đã có tạo `PageResponse<T>` & trả `Page<StudentListItemResponse>` từ service
+
+Do đó cần viết helper:
+
+```java
+public <T, R> Page<R> mapPage(Page<T> page, Function<T, R> mapper) {
+    return page.map(mapper);
+}
+```
+
+Sử dụng ở service:
+
+```java
+Page<Student> page = studentRepository.findAll(pageable);
+Page<StudentListItemResponse> dtoPage = page.map(mapper::toListItem);
+```
 
 ---
 
