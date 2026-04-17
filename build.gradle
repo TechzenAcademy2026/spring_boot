@@ -44,9 +44,37 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	// Testcontainers: spin-up PostgreSQL container thật khi chạy integration test
+	testImplementation platform('org.testcontainers:testcontainers-bom:1.20.4')
+	testImplementation 'org.testcontainers:junit-jupiter'
+	testImplementation 'org.testcontainers:postgresql'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
+
+	testLogging {
+		// Hiển thị kết quả từng test case: PASSED / FAILED / SKIPPED
+		events 'passed', 'failed', 'skipped'
+
+		// In exception và stack trace khi test fail
+		exceptionFormat 'full'
+		showExceptions true
+		showCauses true
+
+		// In tổng kết cuối: "X tests completed, Y failed"
+		afterSuite { desc, result ->
+			if (!desc.parent) {
+				println "\n===== Test Results ====="
+				println "Tests run : ${result.testCount}"
+				println "Passed    : ${result.successfulTestCount}"
+				println "Failed    : ${result.failedTestCount}"
+				println "Skipped   : ${result.skippedTestCount}"
+				println "========================"
+			}
+		}
+	}
 }
+
